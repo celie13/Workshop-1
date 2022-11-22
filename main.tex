@@ -1,0 +1,145 @@
+\documentclass[a4paper, 11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{courier} 
+\usepackage{listings}
+\usepackage{minted}
+\usepackage{subfig}
+\usepackage{qtree}\usepackage{makecell}
+\usepackage{float}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\lstset{                    % Code langugage
+basicstyle=\ttfamily,   
+}
+\title{Workshop 1: 4-bit CPU Design}
+\author{Charles Khoury \\
+\href{mailto:ck15960@my.bristol.ac.uk}{charles.khoury@bristol.ac.uk}}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+The goal of this workshop is to gain a better understanding of the inner-workings of the 4-bit CPU and understand the design philosophy. The CPU is designed using ModuleSim which simulates hardware previously used in the delivery of the introductory unit to computer architecture for undergraduates, the modules were meant to work in tandem with the simulation; hence the unusual component choice. This implies the need to work around the design constrains set by the design tool.
+
+\section{Basic design knowledge}
+Fundamentally CPUs are Finite State Machines (FSM) containing the following component block:
+\begin{itemize}
+  \item Control Unit (CU).
+  \item Arithmetic Logic Unit (ALU).
+  \item Registers.
+  \item Buses (internal data lines).
+  \item Clock
+  \item Cache
+\end{itemize}
+The processor in this unit doesn't have a cache, instead instructions are fetched directly from memory (NRAM component in ModuleSim).\\
+\textbf{ALU}: performs arithmetic and logical operation and in for the 4-bit processor the part of the multistage memory write process (see STAM). \\
+\textbf{CU}: Performs the Fetch, Decode, Execute operations by issuing control  signals to the hardware and moving data around.\\
+\textbf{Registers}: Small amount of memory contained within the CPU to store data needed to perform the various functions. Such as instruction address, current opcode and optional operand, result of calculations. Modern processors possess specific function registers (such as the Program Counter (PC), Instruction Register, etc.) and general purpose register than can be used to store addresses, computation results etc. \\
+\textbf{Clock}: Used to synchronize the different CPU components. \\
+This computational model is what is know as the Von Neumann architecture. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width =0.57\textwidth]{Images/von-neuman-arch.png}
+    \caption{Von Neumann Architecture diagram}
+    \label{fig:vn-arch}
+\end{figure}
+
+\section{Understanding the Instruction Set}
+\subsection{Instruction Set Architecture}
+The base implementation of the 4-bit uses 8 instructions encoded over 4 bits. \\
+\textbf{Question:} Theoretically, how many instructions can be encoded over 4 bits? \\
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l c X|}
+  \hline
+
+  Mnemonic & Operands/Example & Description \\
+  \hline
+
+\verb|LDAC| & \textit{Cn} & Load constant in register A \\
+& \verb|LDAC 5| & Load 5 into register A\\
+  \hline
+  \verb|LDBC| & \textit{Cn} & Load constant in register B \\
+& \verb|LDBC 5| & Load 5 into register B\\
+  \hline
+  \verb|LDAM| & \textit{[Addr]} & Load LSB at address of \textit{Addr} into register A \\
+& \verb|LDAM 10| & Load LSBs stored in memory location 10 into register A\\
+  \hline
+    \verb|LDBM| & \textit{[Addr]} & Load LSBs at address of \textit{Addr} into register B \\
+& \verb|LDBM 10| & Load LSBs stored in memory location 10 into register B\\
+  \hline
+  \verb|STAM| & \textit{[Addr]} & Store the content register A in memory location \textit{Addr} and reset the MSB\\
+& \verb|STAM 10| & Store content of A\\
+\hline
+
+\end{tabularx}
+ \caption{List of Added EBNF rules \citep{EBNF}}
+ \label{Table-3}
+ \end{table} 
+ 
+\subsection{Exercise}
+
+\textbf{Question:} What is the value stored in register B after complete execution of the following code:
+\begin{lstlisting}
+    LDAC 2
+    LDBC 3
+    ADD
+    STAM 10
+    LDBC 4
+    SUB
+    LDBM 10
+\end{lstlisting}
+\textbf{Question:} Consider the code below:
+\begin{lstlisting}
+    LDAC 4
+    LDBC 3
+    STAM 4
+    ADD
+\end{lstlisting}
+What is the value of register A after complete execution of this code.\\
+\textbf{Note:} Try to understand how writing to memory affected code execution.
+\section{Design Implementation}
+\subsection{Arithmetic Logic Unit}
+\subsection{Control Unit}
+As mentioned above the role of the CU is to perform the the Fetch, Decode, Execute operation by deriving control signals. \\
+\textbf{Question:} What are the different entity that need to be controlled in the data path for each instruction ? \\ 
+Derive the control signal needed for each instructions to the different components of the data path. Include a fetch and decode phase as part of your work. \\
+For this processor the CU is implemented in two part, a phase generator and decoder unit. The former allows to select the function (Fetch, Increment, [Decode-Execute]) and the latter allows you generate a control signal based on the instruction (i.e. Decode).
+\subsubsection{Clock Phases}
+The segmentation of the Fetch, Increment PC and [Decode-Execute] are done using the two phase clock and a counter to generate an upper phase.
+The main clock has 2 non-overlapping phases $(a,b)$. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width =0.57\textwidth]{Images/The-non-overlapping-two-phase-clocking-scheme.png}
+    \caption{Non overlapping clock}
+    \label{fig:nonoverclk}
+    \end{figure}
+In ModuleSim, when connected to a register the clock module is able to generate the control signal to the register as to write or reset it. From there, a counter tied to phase $b$ is used to generate a numbered phased $(1,2,3)$ (The counter can generate more phases which  remain unused). \\
+\textbf{Question:} By combining numbered and lettered phases, how many phases can be generated ? \\
+\textbf{Question:} Do we need to use every phase ? \textit{Hint:} Which register is connected to the X.a phase.
+
+\subsubsection{Instruction Decoding}
+The decoding process determines what instruction is to be performed and produces a sequence on each control line top implement functionality. This is typically done using a binary encoder that "1-hot" encodes the signal. For the processor studied in this unit this is done using multiple demultiplexers. \\
+\textbf{Question:} Why do we need multiple demultiplexers ? 
+
+
+\bibliographystyle{alpha}
+\bibliography{sample}
+
+\end{document}
