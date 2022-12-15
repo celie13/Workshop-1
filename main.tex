@@ -78,18 +78,26 @@ The base implementation of the 4-bit uses 8 instructions encoded over 4 bits. \\
   \verb|LDBC| & \textit{Cn} & Load constant in register B \\
 & \verb|LDBC 5| & Load 5 into register B\\
   \hline
-  \verb|LDAM| & \textit{[Addr]} & Load LSB at address of \textit{Addr} into register A \\
+  \verb|LDAM| & \textit{Addr} & Load LSB at address of \textit{Addr} into register A \\
 & \verb|LDAM 10| & Load LSBs stored in memory location 10 into register A\\
   \hline
-    \verb|LDBM| & \textit{[Addr]} & Load LSBs at address of \textit{Addr} into register B \\
+    \verb|LDBM| & \textit{Addr} & Load LSBs at address of \textit{Addr} into register B \\
 & \verb|LDBM 10| & Load LSBs stored in memory location 10 into register B\\
   \hline
-  \verb|STAM| & \textit{[Addr]} & Store the content register A in memory location \textit{Addr} and reset the MSB\\
+  \verb|STAM| & \textit{Addr} & Store the content register A in memory location \textit{Addr} and reset the MSB\\
 & \verb|STAM 10| & Store content of A\\
 \hline
-
+  \verb|ADD| &  & Add the values stored in register A and B and store the result in A\\
+& \verb|ADD| \textit{A = 6, B=4}, & Value of A after Phase 3b : 10\\
+\hline
+  \verb|SUB| &  & Substract the values stored in register A and B and store the result in A\\
+& \verb|SUB| \textit{A = 6, B=4}, & Value of A after Phase 3b : 2\\
+\hline
+  \verb|LDAI| & \textit{offset} & Load the content from memory at address [A+offset] into A\\
+& \verb|LDAI| LDAI 4 \textit{A=6,Mem10 = 12} & Load 12 into register A\\
+\hline
 \end{tabularx}
- \caption{List of Added EBNF rules \citep{EBNF}}
+ \caption{4-bit CPU ISA}
  \label{Table-3}
  \end{table} 
  
@@ -109,20 +117,22 @@ The base implementation of the 4-bit uses 8 instructions encoded over 4 bits. \\
 \begin{lstlisting}
     LDAC 4
     LDBC 3
-    STAM 4
+    STAM 3
     ADD
 \end{lstlisting}
 What is the value of register A after complete execution of this code.\\
-\textbf{Note:} Try to understand how writing to memory affected code execution.
+\textbf{Note:} Try to understand how writing to memory affected code execution.\\
+\textbf{Question:} Which instruction(s) write to Register A?\\
+\textbf{Question:} Which instruction(s) read and write to/from the main memory ?\\
 \section{Design Implementation}
 \subsection{Arithmetic Logic Unit}
 \subsection{Control Unit}
 As mentioned above the role of the CU is to perform the the Fetch, Decode, Execute operation by deriving control signals. \\
-\textbf{Question:} What are the different entity that need to be controlled in the data path for each instruction ? \\ 
+\textbf{Question:} What are the different entit(y/ies) that need to be controlled in the data path for each instruction ? \\ 
 Derive the control signal needed for each instructions to the different components of the data path. Include a fetch and decode phase as part of your work. \\
 For this processor the CU is implemented in two part, a phase generator and decoder unit. The former allows to select the function (Fetch, Increment, [Decode-Execute]) and the latter allows you generate a control signal based on the instruction (i.e. Decode).
 \subsubsection{Clock Phases}
-The segmentation of the Fetch, Increment PC and [Decode-Execute] are done using the two phase clock and a counter to generate an upper phase.
+The segmentation of the Fetch, Increment PC and [Decode-Execute] is done using the two phase clock and a counter to generate an upper phase.
 The main clock has 2 non-overlapping phases $(a,b)$. 
 \begin{figure}[H]
     \centering
@@ -130,16 +140,44 @@ The main clock has 2 non-overlapping phases $(a,b)$.
     \caption{Non overlapping clock}
     \label{fig:nonoverclk}
     \end{figure}
-In ModuleSim, when connected to a register the clock module is able to generate the control signal to the register as to write or reset it. From there, a counter tied to phase $b$ is used to generate a numbered phased $(1,2,3)$ (The counter can generate more phases which  remain unused). \\
+In ModuleSim, when connected to a register the clock module is able to generate the control signal to the register as to write or reset it. From there, a counter tied to phase $b$ is used to generate a numbered phased $(1,2,3)$ (The counter can generate more phases which remain unused). \\
 \textbf{Question:} By combining numbered and lettered phases, how many phases can be generated ? \\
-\textbf{Question:} Do we need to use every phase ? \textit{Hint:} Which register is connected to the X.a phase.
 
 \subsubsection{Instruction Decoding}
-The decoding process determines what instruction is to be performed and produces a sequence on each control line top implement functionality. This is typically done using a binary encoder that "1-hot" encodes the signal. For the processor studied in this unit this is done using multiple demultiplexers. \\
-\textbf{Question:} Why do we need multiple demultiplexers ? 
-
-
-\bibliographystyle{alpha}
-\bibliography{sample}
+The decoding process determines what instruction is to be performed and produces a sequence on each control line top implement functionality. This is typically done using a binary encoder that "1-hot" encodes the signal. For the processor studied in this unit this is achieved using multiple demultiplexers. \\
+\textbf{Question:} Why do we need multiple demultiplexers ? \\
+\textbf{Question:} Which register is used as input to the demultiplexer's address bits\\
+\textbf{Question:} Based on what you know from the clock and the different phases generated, what is common input to the demultiplexer ? \\
+\textbf{Question:} What is the encoding of the following instruction STAM (0100)?\\
+\textbf{Question:} Consider the following:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width =0.57\textwidth]{Images/Screenshot from 2022-12-14 16-31-07.png}
+    \caption{Demultplexers}
+    \label{fig:demux}
+    \end{figure}
+\begin{enumerate}
+    \item What is the purpose of this circuit ?
+    \item What is the input the bottom and top demultiplexers ?
+    \item Which component in Modulesim can provide the desired functionality for (2.)?
+\end{enumerate}
+\subsubsection{Control Signal}
+Different stages of the CPU either derive the same control signal or target the same hardware. \\
+\textbf{Question:} What ModuleSim components can you use to implement this functionality ? \\
+\textbf{Question:} Consider the following ALU diagram and 4-bit control logic the each of the components:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width =0.57\textwidth]{Images/Screenshot from 2022-12-14 16-40-47.png}
+    \caption{ALU}
+    \label{fig:demux}
+    \end{figure}
+\begin{enumerate}
+    \item What is the to the AU/Memory MUX in phase 1  ?
+    \item Which register are "enabled" in phase 1.b ?
+    \item What are the inputs to MUX A/PC and B/O in phase 2 ? 
+    \item Describe the process of implementing the STAM instructions. (i.e. Dataflow and control signal)
+\end{enumerate}
+%#\bibliographystyle{alpha}
+%\bibliography{sample}
 
 \end{document}
