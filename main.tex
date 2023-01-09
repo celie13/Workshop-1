@@ -21,6 +21,7 @@
 \usepackage{hyperref}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage{longtable}
+\usepackage{xcolor}
 \usepackage{tabularx}
 \lstset{                    % Code langugage
 basicstyle=\ttfamily,   
@@ -113,6 +114,7 @@ The base implementation of the 4-bit uses 8 instructions encoded over 4 bits. \\
     SUB
     LDBM 10
 \end{lstlisting}
+\textcolor{red}{\textbf{Answer:}} The value in register B since the result of A+B (A=2, B=3) is stored in address 10 which is then loaded in register B in the final instruction\\
 \textbf{Question:} Consider the code below:
 \begin{lstlisting}
     LDAC 4
@@ -121,16 +123,21 @@ The base implementation of the 4-bit uses 8 instructions encoded over 4 bits. \\
     ADD
 \end{lstlisting}
 What is the value of register A after complete execution of this code.\\
+\textcolor{red}{\textbf{Answer:}} The final value is 4 and NOT 7 as the STAM instruction overwrites the content at location 0x03 which is where the ADD instruction is located in this code.\\
 \textbf{Note:} Try to understand how writing to memory affected code execution.\\
 \textbf{Question:} Which instruction(s) write to Register A?\\
+\textcolor{red}{\textbf{Answer:}} LDAC, LDAI, LDAM, ADD, SUB\\
 \textbf{Question:} Which instruction(s) read and write to/from the main memory ?\\
+\textcolor{red}{\textbf{Answer:}} LDBM, LDAI, LDAM, STAM, \\
 \section{Design Implementation}
 \subsection{Arithmetic Logic Unit}
 \subsection{Control Unit}
 As mentioned above the role of the CU is to perform the the Fetch, Decode, Execute operation by deriving control signals. \\
 \textbf{Question:} What are the different entit(y/ies) that need to be controlled in the data path for each instruction ? \\ 
 Derive the control signal needed for each instructions to the different components of the data path. Include a fetch and decode phase as part of your work. \\
+\textcolor{red}{\textbf{Answer:}} Please refer to the file \textit{ISA_control.pdf}\\
 For this processor the CU is implemented in two part, a phase generator and decoder unit. The former allows to select the function (Fetch, Increment, [Decode-Execute]) and the latter allows you generate a control signal based on the instruction (i.e. Decode).
+
 \subsubsection{Clock Phases}
 The segmentation of the Fetch, Increment PC and [Decode-Execute] is done using the two phase clock and a counter to generate an upper phase.
 The main clock has 2 non-overlapping phases $(a,b)$. 
@@ -146,9 +153,13 @@ In ModuleSim, when connected to a register the clock module is able to generate 
 \subsubsection{Instruction Decoding}
 The decoding process determines what instruction is to be performed and produces a sequence on each control line top implement functionality. This is typically done using a binary encoder that "1-hot" encodes the signal. For the processor studied in this unit this is achieved using multiple demultiplexers. \\
 \textbf{Question:} Why do we need multiple demultiplexers ? \\
+\textcolor{red}{\textbf{Answer:}} The DMX module is a 2-4 demux with a 2 bit control signal (each lane represents a 4 bit bus). Since we need to implement more than 4 instructions we create a 4-16 (using it as a 4-8 as the base implementation of the CPU uses 8 instruction) demux using one demux to decode the MSBs and 2 demux to decode the LSBs\\
 \textbf{Question:} Which register is used as input to the demultiplexer's address bits\\
-\textbf{Question:} Based on what you know from the clock and the different phases generated, what is common input to the demultiplexer ? \\
+\textcolor{red}{\textbf{Answer:}} The Opcode register\\
+\textbf{Question:} Based on what you know from the clock and the different phases generated, what is the common input to the demultiplexer ? \\
+\textcolor{red}{\textbf{Answer:}} Phase 3 is the control signal that is demultiplexed based on the instruction opcode\\
 \textbf{Question:} What is the encoding of the following instruction STAM (0100)?\\
+\textcolor{red}{\textbf{Answer:}} 0000 0000 0000 0000 0001 0000 0000 0000\\
 \textbf{Question:} Consider the following:
 \begin{figure}[H]
     \centering
@@ -158,11 +169,15 @@ The decoding process determines what instruction is to be performed and produces
     \end{figure}
 \begin{enumerate}
     \item What is the purpose of this circuit ?
+    \textcolor{red}{\textbf{Answer:}} One-hot encode the Opcode\\
     \item What is the input the bottom and top demultiplexers ?
+    \textcolor{red}{\textbf{Answer:}} Bottom DMX Opcode MSB (2-bit), Top DMX Opcode LSB (2-bit)\\
     \item Which component in Modulesim can provide the desired functionality for (2.)?
+       \textcolor{red}{\textbf{Answer:}} Split-Merge\\
 \end{enumerate}
 \subsubsection{Control Signal}
 Different stages of the CPU either derive the same control signal or target the same hardware. \\
+\textcolor{red}{\textbf{Answer:}} We use OR blocks\\
 \textbf{Question:} What ModuleSim components can you use to implement this functionality ? \\
 \textbf{Question:} Consider the following ALU diagram and 4-bit control logic the each of the components:
 \begin{figure}[H]
@@ -172,10 +187,17 @@ Different stages of the CPU either derive the same control signal or target the 
     \label{fig:demux}
     \end{figure}
 \begin{enumerate}
-    \item What is the to the AU/Memory MUX in phase 1  ?
-    \item Which register are "enabled" in phase 1.b ?
-    \item What are the inputs to MUX A/PC and B/O in phase 2 ? 
+    \item What is the input to the AU/Memory MUX in phase 1  ? \\
+     \textcolor{red}{\textbf{Answer:}} 0001 to select the NRAM data\\
+    \item Which register(s) are "enabled" in phase 1.b ? \\
+    \textcolor{red}{\textbf{Answer:}} O Reg, Opcode Reg\\
+    \item What are the inputs to MUX A/PC and B/O in phase 2 ? \\
+    \textcolor{red}{\textbf{Answer:}} 0001 for MUX A/PC to select the PC and 0010 for MUX B/O to select a '0' so we can perform PC + 0 + Carry (the correct input need to be set to AU)\\
     \item Describe the process of implementing the STAM instructions. (i.e. Dataflow and control signal)
+    \textcolor{red}{\textbf{Answer:}} 
+    The first step is to fetch the instruction  (Refer to the  xlsx file) \\
+    Then we need to incrememt PC+1 \\
+    Decode the instuction using our DMX system\\
 \end{enumerate}
 %#\bibliographystyle{alpha}
 %\bibliography{sample}
